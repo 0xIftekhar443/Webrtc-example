@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebRTC Example</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    #localVideo, #remoteVideo {
+        width: 1000px;
+        height: 540px;
+        margin-bottom: 10px;
+        border: 5px solid rgb(255, 0, 0);
+        border-radius: 10px;
+        }
+
+    body {
+        background-color: black;
+        color: white;
+        text-align: center;
+        margin: 0px;
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 24px;
+    }
+
+    #startButton {
+  margin-top: 20px;
+  margin-bottom: 40px;
+  margin-right: 30px;
+  padding: 10px 20px;
+  text-transform: uppercase;
+  border-radius: 8px;
+  font-size: 27px;
+  font-weight: 500;
+  color: #ffffff80;
+  text-shadow: none;
+  background: transparent;
+  cursor: pointer;
+  box-shadow: transparent;
+  border: 1px solid #ffffff80;
+  transition: 0.5s ease;
+  user-select: none;
+  font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    font-style: normal;
+}
+
+#startButton:hover,
+:focus {
+  color: #ffffff;
+  background: #ff0000;
+  border: 1px solid #ff0000;
+  text-shadow: 0 0 5px #ffffff, 0 0 10px #ffffff, 0 0 20px #ffffff;
+  box-shadow: 0 0 5px #ff0000, 0 0 20px #ff0000, 0 0 50px #ff0000,
+    0 0 100px #ff0000;
+}
+
+#hangupButton {
+  padding: 10px 20px;
+  text-transform: uppercase;
+  border-radius: 8px;
+  font-size: 27px;
+  font-weight: 500;
+  color: #ffffff80;
+  text-shadow: none;
+  background: transparent;
+  cursor: pointer;
+  box-shadow: transparent;
+  border: 1px solid #ffffff80;
+  transition: 0.5s ease;
+  user-select: none;
+  font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    font-style: normal;
+}
+
+#hangupButton:hover,
+:focus {
+    color: #ffffff;
+  background: #ff0000;
+  border: 1px solid #ff0000;
+  text-shadow: 0 0 5px #ffffff, 0 0 10px #ffffff, 0 0 20px #ffffff;
+  box-shadow: 0 0 5px #ff0000, 0 0 20px #ff0000, 0 0 50px #ff0000,
+    0 0 100px #ff0000;
+}
+
+::selection {
+    background-color: rgba(190, 190, 190, 0.155);
+}
+
+</style>
+</head>
+<body>
+    <h1>WebRTC Example</h1>
+    <div>
+        <h2>Local Video</h2>
+        <video id="localVideo" autoplay muted></video>
+    </div>
+    <div>
+        <h2>Remote Video</h2>
+        <video id="remoteVideo" autoplay></video>
+    </div>
+    <div>
+        <button id="startButton">Start Call</button>
+        <button id="hangupButton">Hang Up</button>
+    </div>
+
+    <script>
+        let localStream;
+        let remoteStream;
+        let peerConnection;
+
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const startButton = document.getElementById('startButton');
+        const hangupButton = document.getElementById('hangupButton');
+
+        startButton.addEventListener('click', startCall);
+        hangupButton.addEventListener('click', hangUp);
+
+        async function startCall() {
+            startButton.disabled = true;
+            hangupButton.disabled = false;
+
+            try {
+                // Get local media stream
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideo.srcObject = localStream;
+
+                // Create RTCPeerConnection
+                peerConnection = new RTCPeerConnection();
+                peerConnection.addEventListener('track', handleRemoteStreamAdded);
+
+                // Add local stream to peer connection
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+                // Create offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // Send offer to remote peer (In a real scenario, you would send the offer to a signaling server)
+                console.log('Sending offer to remote peer:', offer);
+
+            } catch (error) {
+                console.error('Error starting call:', error);
+            }
+        }
+
+        function handleRemoteStreamAdded(event) {
+            console.log('Remote stream added:', event.streams[0]);
+            remoteStream = event.streams[0];
+            remoteVideo.srcObject = remoteStream;
+        }
+
+        async function hangUp() {
+            hangupButton.disabled = true;
+            startButton.disabled = false;
+
+            // Close peer connection and release streams
+            if (peerConnection) {
+                peerConnection.close();
+            }
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                localVideo.srcObject = null;
+            }
+
+            if (remoteStream) {
+                remoteStream.getTracks().forEach(track => track.stop());
+                remoteStream = null;
+                remoteVideo.srcObject = null;
+            }
+        }
+    </script>
+</body>
+</html>
